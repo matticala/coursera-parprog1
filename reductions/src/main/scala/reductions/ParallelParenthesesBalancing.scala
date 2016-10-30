@@ -41,22 +41,57 @@ object ParallelParenthesesBalancing {
   /** Returns `true` iff the parentheses in the input `chars` are balanced.
    */
   def balance(chars: Array[Char]): Boolean = {
-    ???
+    val length = chars.length
+
+    @tailrec
+    def innerBalance(i: Int, count: Int): Boolean = {
+      if (i == length) count == 0
+      else if (chars(i) == ')' && count == 0) false
+      else {
+        val newCount = chars(i) match {
+          case '(' => 1
+          case ')' => -1
+          case _ => 0
+        }
+        innerBalance(i + 1, count + newCount)
+      }
+    }
+    innerBalance(0, 0)
   }
 
   /** Returns `true` iff the parentheses in the input `chars` are balanced.
    */
   def parBalance(chars: Array[Char], threshold: Int): Boolean = {
 
-    def traverse(idx: Int, until: Int, arg1: Int, arg2: Int) /*: ???*/ = {
-      ???
+    require(threshold > 0)
+
+    def traverse(idx: Int, until: Int, arg1: Int, arg2: Int): (Int, Int) = {
+      if (idx >= until) (arg1, arg2)
+      else {
+        val (v1, v2) = chars(idx) match {
+          case '(' => (arg1 + 1, if (arg2 == 0) +1 else arg2) // once the first parentheses has been found
+          case ')' => (arg1 - 1, if (arg2 == 0) -1 else arg2) // the sign is set and it's never changed for this chunk
+          case _ => (arg1, arg2)
+        }
+        traverse(idx + 1, until, v1, v2)
+      }
     }
 
-    def reduce(from: Int, until: Int) /*: ???*/ = {
-      ???
+    def reduce(from: Int, until: Int): (Int, Int) = {
+      if (until <= from || until - from <= threshold) {
+        traverse(from, until, 0, 0)
+      } else {
+        val mid = from + (until - from) / 2
+        val ((balanceLeft, signLeft), (balanceRight, signRight)) = parallel(
+          reduce(from, mid),
+          reduce(mid, until)
+        )
+        (balanceLeft + balanceRight, if (signLeft == 0) signRight else signLeft)
+      }
     }
 
-    reduce(0, chars.length) == ???
+    val (balance, sign) = reduce(0, chars.length)
+    balance == 0 && sign >= 0
   }
 
   // For those who want more:
